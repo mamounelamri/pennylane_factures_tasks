@@ -28,20 +28,20 @@ jobs:
         
     - name: Configuration des variables d'environnement
       run: |
-        echo "PENNYLANE_API_KEY=${{ vars.PENNYLANE_API_KEY }}" >> .env
+        echo "PENNYLANE_API_KEY=${{ secrets.PENNYLANE_API_KEY }}" >> .env
         echo "GOOGLE_SHEETS_CREDENTIALS_FILE=credentials.json" >> .env
         echo "SPREADSHEET_ID=${{ vars.SPREADSHEET_ID }}" >> .env
         echo "SPREADSHEET_NAME=${{ vars.SPREADSHEET_NAME }}" >> .env
         
     - name: Configuration des credentials Google
       run: |
-        echo '${{ vars.GOOGLE_CREDENTIALS }}' > credentials.json
+        echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
         
     - name: Exécution de la synchronisation
       run: |
         python3 main.py --auto
       env:
-        PENNYLANE_API_KEY: ${{ vars.PENNYLANE_API_KEY }}
+        PENNYLANE_API_KEY: ${{ secrets.PENNYLANE_API_KEY }}
         SPREADSHEET_ID: ${{ vars.SPREADSHEET_ID }}
         SPREADSHEET_NAME: ${{ vars.SPREADSHEET_NAME }}
         
