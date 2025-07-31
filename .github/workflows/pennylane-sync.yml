@@ -10,6 +10,7 @@ on:
 jobs:
   sync-pennylane:
     runs-on: ubuntu-latest
+    environment: production  # Utilise l'environnement production
     
     steps:
     - name: Checkout du code
@@ -27,22 +28,22 @@ jobs:
         
     - name: Configuration des variables d'environnement
       run: |
-        echo "PENNYLANE_API_KEY=${{ secrets.PENNYLANE_API_KEY }}" >> .env
+        echo "PENNYLANE_API_KEY=${{ vars.PENNYLANE_API_KEY }}" >> .env
         echo "GOOGLE_SHEETS_CREDENTIALS_FILE=credentials.json" >> .env
-        echo "SPREADSHEET_ID=${{ secrets.SPREADSHEET_ID }}" >> .env
-        echo "SPREADSHEET_NAME=${{ secrets.SPREADSHEET_NAME }}" >> .env
+        echo "SPREADSHEET_ID=${{ vars.SPREADSHEET_ID }}" >> .env
+        echo "SPREADSHEET_NAME=${{ vars.SPREADSHEET_NAME }}" >> .env
         
     - name: Configuration des credentials Google
       run: |
-        echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
+        echo '${{ vars.GOOGLE_CREDENTIALS }}' > credentials.json
         
     - name: Exécution de la synchronisation
       run: |
         python3 main.py --auto
       env:
-        PENNYLANE_API_KEY: ${{ secrets.PENNYLANE_API_KEY }}
-        SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
-        SPREADSHEET_NAME: ${{ secrets.SPREADSHEET_NAME }}
+        PENNYLANE_API_KEY: ${{ vars.PENNYLANE_API_KEY }}
+        SPREADSHEET_ID: ${{ vars.SPREADSHEET_ID }}
+        SPREADSHEET_NAME: ${{ vars.SPREADSHEET_NAME }}
         
     - name: Nettoyage des credentials
       if: always()
