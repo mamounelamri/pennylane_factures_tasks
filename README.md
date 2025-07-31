@@ -1,4 +1,4 @@
-# Intégration Pennylane - Google Sheets
+# Intégration Pennylane - Google Sheets :
 
 Ce projet surveille automatiquement les factures et avoirs payés dans Pennylane et crée des tâches correspondantes dans Google Sheets.
 
