@@ -112,12 +112,12 @@ class PennylaneSheetsIntegration:
         # Utiliser l'ID du client comme référence (puisqu'on ne peut pas récupérer les détails)
         customer_id = customer_data.get('id', '')
         
-        # Récupérer le label du client (plus informatif que l'ID)
-        customer_label = customer_data.get('label', f"Client {customer_id}")
+        # Récupérer le label directement depuis la facture (plus informatif que l'ID)
+        invoice_label = invoice_data.get('label', f"Client {customer_id}")
         
         task_data = {
             'client_number': str(customer_id),
-            'client_name': customer_label,  # Utiliser le label du client
+            'client_name': invoice_label,  # Utiliser le label de la facture
             'invoice_number': invoice_data.get('invoice_number', ''),
             'invoice_date': self.format_date(invoice_data.get('date')),
             'payment_date': payment_info['payment_date'],

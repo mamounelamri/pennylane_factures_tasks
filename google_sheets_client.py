@@ -210,7 +210,7 @@ class GoogleSheetsClient:
         - Champs modifiés: "Numéro de facture / Montant facture"
         - ID Mission: vide
         - Modification faite par: "Pennylane"
-        - Commentaire interne: "Date de la facture / Nom du client"
+        - Commentaire interne: "Date de la facture [date] / [label du client]"
         """
         try:
             # Préparer les données selon le format spécifié
@@ -218,8 +218,8 @@ class GoogleSheetsClient:
             unique_id = self.generate_unique_id()
             
             # Construire les champs avec les informations de Pennylane
-            champs_modifies = f"{task_data.get('invoice_number', '')} / {task_data.get('payment_amount', '')}"
-            commentaire_interne = f"{task_data.get('invoice_date', '')} / {task_data.get('client_name', '')}"
+            champs_modifies = f"Numéro de facture : {task_data.get('invoice_number', '')} / Montant : {task_data.get('payment_amount', '')}"
+            commentaire_interne = f"Date de la facture {task_data.get('invoice_date', '')} / {task_data.get('client_name', '')}"
             
             row_data = [
                 unique_id,  # ID = ID unique aléatoire
@@ -229,7 +229,7 @@ class GoogleSheetsClient:
                 champs_modifies,  # Champs modifiés = "Numéro facture / Montant"
                 '',  # ID Mission = vide
                 'Pennylane',  # Modification faite par
-                commentaire_interne  # Commentaire interne = "Date facture / Nom client"
+                commentaire_interne  # Commentaire interne = "Date de la facture [date] / [label]"
             ]
             
             # Trouver la prochaine ligne vide dans la feuille spécifiée
