@@ -1,0 +1,7 @@
+# Configuration Pennylane
+PENNYLANE_API_KEY=votre_clé_api_pennylane_ici
+
+# Configuration Google Sheets
+GOOGLE_SHEETS_CREDENTIALS_FILE=credentials.json
+SPREADSHEET_ID=1q5xhrst1VyHbym3960K31BuuUI_yLA5c2qNUPBX6GSU
+SPREADSHEET_NAME=Tâches à réaliser 

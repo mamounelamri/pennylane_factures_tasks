@@ -1,0 +1,51 @@
+name: Synchronisation Pennylane - Google Sheets
+
+on:
+  schedule:
+    # Exécution tous les jours à 12h00 heure française (10h00 UTC en hiver, 11h00 UTC en été)
+    # Utilisation de 11h00 UTC pour couvrir les deux fuseaux horaires
+    - cron: '0 11 * * *'
+  workflow_dispatch:  # Permet l'exécution manuelle depuis l'interface GitHub
+
+jobs:
+  sync-pennylane:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout du code
+      uses: actions/checkout@v4
+      
+    - name: Configuration Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Installation des dépendances
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Configuration des variables d'environnement
+      run: |
+        echo "PENNYLANE_API_KEY=${{ secrets.PENNYLANE_API_KEY }}" >> .env
+        echo "GOOGLE_SHEETS_CREDENTIALS_FILE=credentials.json" >> .env
+        echo "SPREADSHEET_ID=${{ secrets.SPREADSHEET_ID }}" >> .env
+        echo "SPREADSHEET_NAME=${{ secrets.SPREADSHEET_NAME }}" >> .env
+        
+    - name: Configuration des credentials Google
+      run: |
+        echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
+        
+    - name: Exécution de la synchronisation
+      run: |
+        python3 main.py --auto
+      env:
+        PENNYLANE_API_KEY: ${{ secrets.PENNYLANE_API_KEY }}
+        SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+        SPREADSHEET_NAME: ${{ secrets.SPREADSHEET_NAME }}
+        
+    - name: Nettoyage des credentials
+      if: always()
+      run: |
+        rm -f credentials.json
+        rm -f .env 
