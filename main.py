@@ -54,11 +54,8 @@ class PennylaneSheetsIntegration:
     
     def format_amount(self, amount: str) -> str:
         """Formate un montant pour l'affichage"""
-        if not amount:
-            return ""
         try:
-            amount_float = float(amount)
-            return f"{amount_float:.2f} €"
+            return f"{float(amount):.2f}€"
         except:
             return amount
     
@@ -74,117 +71,146 @@ class PennylaneSheetsIntegration:
         except:
             return False
     
-    def get_payment_info(self, invoice_data: Dict) -> Dict:
-        """
-        Récupère les informations de paiement d'une facture depuis l'API v2
-        """
-        payment_info = {
-            'payment_date': '',
-            'payment_amount': '',
-            'status': ''
-        }
+    def extract_client_name(self, label: str) -> str:
+        """Extrait le nom du client du label de facture"""
+        if not label:
+            return 'N/A'
         
-        # Date de la facture
-        payment_info['payment_date'] = self.format_date(invoice_data.get('date'))
-        
-        # Montant de la facture
-        payment_info['payment_amount'] = self.format_amount(invoice_data.get('currency_amount'))
-        
-        # Statut selon la documentation
-        if invoice_data.get('status') == 'partially_cancelled':
-            payment_info['status'] = 'Partiellement payée'
-        elif invoice_data.get('paid'):
-            payment_info['status'] = 'Payée'
-        else:
-            payment_info['status'] = invoice_data.get('status', '')
-        
-        return payment_info
+        try:
+            # Format: "Facture EURO DISNEY ASSOCIES SAS - 20498 (label généré)"
+            if label.startswith('Facture '):
+                # Enlever "Facture " au début
+                without_prefix = label[8:]  # "EURO DISNEY ASSOCIES SAS - 20498 (label généré)"
+                
+                # Trouver le premier "-" et prendre ce qui est avant
+                if ' - ' in without_prefix:
+                    client_name = without_prefix.split(' - ')[0]
+                    return client_name.strip()
+            
+            # Si le format n'est pas reconnu, retourner le label complet
+            return label
+        except:
+            return label
     
-    def create_task_from_invoice(self, invoice_data: Dict) -> Dict:
-        """
-        Crée une tâche à partir des données d'une facture (API v2)
-        """
-        payment_info = self.get_payment_info(invoice_data)
-        
-        # Dans l'API v2, les informations client sont incluses dans la facture
-        customer_data = invoice_data.get('customer', {})
-        
-        # Utiliser l'ID du client comme référence (puisqu'on ne peut pas récupérer les détails)
-        customer_id = customer_data.get('id', '')
-        
-        # Récupérer le label directement depuis la facture (plus informatif que l'ID)
-        invoice_label = invoice_data.get('label', f"Client {customer_id}")
-        
-        task_data = {
-            'client_number': str(customer_id),
-            'client_name': invoice_label,  # Utiliser le label de la facture
-            'invoice_number': invoice_data.get('invoice_number', ''),
-            'invoice_date': self.format_date(invoice_data.get('date')),
-            'payment_date': payment_info['payment_date'],
-            'payment_amount': payment_info['payment_amount'],
-            'status': payment_info['status'],
-            'created_at': datetime.now().strftime('%d/%m/%Y %H:%M')
-        }
-        
-        return task_data
+    def create_task_from_invoice(self, invoice: Dict) -> Dict:
+        """Crée les données de tâche à partir d'une facture Pennylane"""
+        try:
+            # Calculs des montants
+            total_amount = float(invoice.get('amount', 0))
+            remaining_amount = float(invoice.get('remaining_amount_with_tax', 0))
+            paid_amount = total_amount - remaining_amount
+            payment_percentage = (paid_amount / total_amount * 100) if total_amount > 0 else 0
+            
+            # Déterminer le statut de paiement
+            if paid_amount >= total_amount or remaining_amount <= 0:
+                payment_status = "Payée"
+                task_name = "Règlement de facture"
+            elif paid_amount > 0:
+                payment_status = "Partiellement payée"
+                task_name = "Règlement partiel de facture"
+            else:
+                payment_status = "Non payée"
+                task_name = "Règlement de facture"
+            
+            # Formater les montants pour l'affichage
+            total_formatted = f"{total_amount:.2f}€"
+            paid_formatted = f"{paid_amount:.2f}€"
+            remaining_formatted = f"{remaining_amount:.2f}€"
+            
+            # Informations de base
+            invoice_number = invoice.get('invoice_number', 'N/A')
+            invoice_date = self.format_date(invoice.get('date'))
+            client_name = self.extract_client_name(invoice.get('label', 'N/A'))
+            
+            # Construire les champs modifiés avec plus de détails
+            champs_modifies = f"Numéro : {invoice_number} / Montant total : {total_formatted} / Montant payé : {paid_formatted} / Reste : {remaining_formatted}"
+            
+            # Commentaire interne avec statut de paiement
+            commentaire_interne = f"Date facture : {invoice_date} / {client_name} / Statut : {payment_status} ({payment_percentage:.0f}%)"
+            
+            return {
+                'invoice_number': invoice_number,
+                'invoice_date': invoice_date,
+                'payment_amount': paid_formatted,
+                'client_name': client_name,
+                'total_amount': total_formatted,
+                'remaining_amount': remaining_formatted,
+                'payment_status': payment_status,
+                'payment_percentage': payment_percentage,
+                'task_name': task_name,
+                'champs_modifies': champs_modifies,
+                'commentaire_interne': commentaire_interne
+            }
+            
+        except Exception as e:
+            print(f"Erreur lors de la création des données de tâche: {e}")
+            return {}
     
     def process_paid_invoices_today(self):
         """Traite les factures passées en statut payé aujourd'hui"""
         today = datetime.now().strftime('%Y-%m-%d')
         print(f"\n=== Traitement des factures payées aujourd'hui ({today}) - {datetime.now().strftime('%d/%m/%Y %H:%M')} ===")
-        
+
         # Récupérer TOUTES les factures
         all_invoices = self.pennylane_client.get_all_invoices()
-        
+
         # Filtrer uniquement les factures (pas les avoirs)
         regular_invoices = [inv for inv in all_invoices if inv.get('status') != 'credit_note']
-        
-        # Filtrer les factures payées ET mises à jour aujourd'hui
+
+        # Filtrer les factures avec paiement ET mises à jour aujourd'hui
         paid_invoices_today = []
-        for invoice in regular_invoices:
-            if invoice.get('paid') and self.is_date_today(invoice.get('updated_at')):
-                paid_invoices_today.append(invoice)
-        
-        # Filtrer les factures partiellement payées ET mises à jour aujourd'hui
         partially_paid_invoices_today = []
+        
         for invoice in regular_invoices:
-            if (invoice.get('status') == 'partially_cancelled' and 
-                self.is_date_today(invoice.get('updated_at'))):
+            # Vérifier si la facture a été mise à jour aujourd'hui
+            if not self.is_date_today(invoice.get('updated_at')):
+                continue
+                
+            # Calculer les montants
+            total_amount = float(invoice.get('amount', 0))
+            remaining_amount = float(invoice.get('remaining_amount_with_tax', 0))
+            paid_amount = total_amount - remaining_amount
+            
+            # Classifier selon le montant payé
+            if paid_amount >= total_amount or remaining_amount <= 0:
+                paid_invoices_today.append(invoice)
+            elif paid_amount > 0:
                 partially_paid_invoices_today.append(invoice)
-        
+
         all_invoices_to_process = paid_invoices_today + partially_paid_invoices_today
-        
+
         print(f"Nombre total de factures analysées: {len(regular_invoices)}")
         print(f"  - Factures payées aujourd'hui: {len(paid_invoices_today)}")
         print(f"  - Factures partiellement payées aujourd'hui: {len(partially_paid_invoices_today)}")
         print(f"  - Avoirs ignorés: {len([inv for inv in all_invoices if inv.get('status') == 'credit_note'])}")
-        
+
         processed_count = 0
-        
+
         for invoice in all_invoices_to_process:
             invoice_id = invoice.get('id')
-            
+
             # Vérifier si déjà traité
             if invoice_id in self.processed_items:
                 continue
-            
-            # Vérifier que les informations client sont présentes
-            customer_data = invoice.get('customer', {})
-            if not customer_data:
-                print(f"Pas d'informations client pour la facture {invoice.get('invoice_number', 'N/A')}")
-                continue
-            
-            # Créer la tâche
+
+            # Créer la tâche avec les nouveaux calculs
             task_data = self.create_task_from_invoice(invoice)
             
+            if not task_data:
+                print(f"✗ Erreur lors de la création des données pour la facture {invoice.get('invoice_number', 'N/A')}")
+                continue
+
             # Ajouter au Google Sheet
             if self.sheets_client.create_task(task_data):
                 self.processed_items.add(invoice_id)
                 processed_count += 1
-                print(f"  ✓ Facture {task_data['invoice_number']} traitée (payée le {self.format_date(invoice.get('updated_at'))})")
+                print(f"  ✓ Facture {task_data['invoice_number']} traitée ({task_data['payment_status']})")
             else:
                 print(f"  ✗ Erreur lors du traitement de la facture {invoice.get('invoice_number', 'N/A')}")
-        
+
+            # Délai de 1 seconde entre chaque facture pour éviter les quotas
+            time.sleep(1)
+
         # Sauvegarder les éléments traités
         if processed_count > 0:
             self.save_processed_items()

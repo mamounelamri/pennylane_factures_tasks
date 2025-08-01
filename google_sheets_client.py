@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import time
 from datetime import datetime
 from typing import Dict, Optional
 from google.oauth2.service_account import Credentials
@@ -202,65 +203,87 @@ class GoogleSheetsClient:
     def create_task(self, task_data: Dict) -> bool:
         """
         Crée une nouvelle tâche dans la feuille
-        Format spécifié par l'utilisateur:
+        Format spécifié par l'utilisateur avec calculs de montants améliorés:
         - ID: ID unique aléatoire
         - Statut: "A faire"
         - Date: date du jour et heure (horodatage)
-        - Nom de la tâche: "Règlement de facture"
-        - Champs modifiés: "Numéro de facture / Montant facture"
+        - Nom de la tâche: "Règlement de facture" ou "Règlement partiel de facture"
+        - Champs modifiés: "Numéro : X / Montant total : X€ / Montant payé : X€ / Reste : X€"
         - ID Mission: vide
         - Modification faite par: "Pennylane"
-        - Commentaire interne: "Date de la facture [date] / [label du client]"
+        - Commentaire interne: "Date facture : X / Client / Statut : X (X%)"
         """
         try:
             # Préparer les données selon le format spécifié
             current_datetime = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
             unique_id = self.generate_unique_id()
-            
-            # Construire les champs avec les informations de Pennylane
-            champs_modifies = f"Numéro de facture : {task_data.get('invoice_number', '')} / Montant : {task_data.get('payment_amount', '')}"
-            commentaire_interne = f"Date de la facture {task_data.get('invoice_date', '')} / {task_data.get('client_name', '')}"
-            
+
+            # Utiliser les nouvelles données calculées
             row_data = [
                 unique_id,  # ID = ID unique aléatoire
-                'A faire',  # Statut
+                'À faire',  # Statut
                 current_datetime,  # Date = date du jour et heure
-                'Règlement de facture',  # Nom de la tâche
-                champs_modifies,  # Champs modifiés = "Numéro facture / Montant"
+                task_data.get('task_name', 'Règlement de facture'),  # Nom de la tâche
+                task_data.get('champs_modifies', ''),  # Champs modifiés avec détails
                 '',  # ID Mission = vide
                 'Pennylane',  # Modification faite par
-                commentaire_interne  # Commentaire interne = "Date de la facture [date] / [label]"
+                task_data.get('commentaire_interne', '')  # Commentaire interne avec statut
             ]
-            
+
             # Trouver la prochaine ligne vide dans la feuille spécifiée
             range_name = f'{self.sheet_name}!A:A'
             result = self.sheets_service.spreadsheets().values().get(
                 spreadsheetId=self.spreadsheet_id,
                 range=range_name
             ).execute()
-            
+
+            # Délai de 1 seconde pour respecter les limites de quota
+            time.sleep(1)
+
             values = result.get('values', [])
             next_row = len(values) + 1
-            
+
             # Écrire la nouvelle ligne
             range_name = f'{self.sheet_name}!A{next_row}:H{next_row}'
             body = {
                 'values': [row_data]
             }
-            
+
             self.sheets_service.spreadsheets().values().update(
                 spreadsheetId=self.spreadsheet_id,
                 range=range_name,
                 valueInputOption='RAW',
                 body=body
             ).execute()
-            
+
+            # Délai de 1 seconde après l'écriture
+            time.sleep(1)
+
             print(f"✓ Tâche créée à la ligne {next_row} dans '{self.sheet_name}' (ID: {unique_id})")
+            print(f"  - {task_data.get('payment_status', 'N/A')} ({task_data.get('payment_percentage', 0):.0f}%)")
+            print(f"  - Montant payé: {task_data.get('payment_amount', 'N/A')} sur {task_data.get('total_amount', 'N/A')}")
             return True
-            
+
         except HttpError as e:
-            print(f"Erreur lors de la création de la tâche: {e}")
-            return False
+            if e.resp.status == 429:
+                print(f"⚠️ Quota dépassé, attente de 60 secondes avant de réessayer...")
+                time.sleep(60)
+                # Réessayer une fois après l'attente
+                try:
+                    self.sheets_service.spreadsheets().values().update(
+                        spreadsheetId=self.spreadsheet_id,
+                        range=range_name,
+                        valueInputOption='RAW',
+                        body=body
+                    ).execute()
+                    print(f"✓ Tâche créée après réessai (ID: {unique_id})")
+                    return True
+                except HttpError as retry_error:
+                    print(f"✗ Échec du réessai: {retry_error}")
+                    return False
+            else:
+                print(f"Erreur lors de la création de la tâche: {e}")
+                return False
     
     def setup_spreadsheet(self):
         """Configuration initiale de la feuille"""
