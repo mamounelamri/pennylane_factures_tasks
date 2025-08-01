@@ -95,9 +95,9 @@ class PennylaneSheetsIntegration:
     def create_task_from_invoice(self, invoice: Dict) -> Dict:
         """Crée les données de tâche à partir d'une facture Pennylane"""
         try:
-            # Calculs des montants
-            total_amount = float(invoice.get('amount', 0))
-            remaining_amount = float(invoice.get('remaining_amount_with_tax', 0))
+            # Calculs des montants avec gestion des valeurs None
+            total_amount = float(invoice.get('amount', 0) or 0)
+            remaining_amount = float(invoice.get('remaining_amount_with_tax', 0) or 0)
             paid_amount = total_amount - remaining_amount
             payment_percentage = (paid_amount / total_amount * 100) if total_amount > 0 else 0
             
@@ -166,9 +166,9 @@ class PennylaneSheetsIntegration:
             if not self.is_date_today(invoice.get('updated_at')):
                 continue
                 
-            # Calculer les montants
-            total_amount = float(invoice.get('amount', 0))
-            remaining_amount = float(invoice.get('remaining_amount_with_tax', 0))
+            # Calculer les montants avec gestion des valeurs None
+            total_amount = float(invoice.get('amount', 0) or 0)
+            remaining_amount = float(invoice.get('remaining_amount_with_tax', 0) or 0)
             paid_amount = total_amount - remaining_amount
             
             # Classifier selon le montant payé
