@@ -212,6 +212,8 @@ class GoogleSheetsClient:
         - ID Mission: vide
         - Modification faite par: "Pennylane"
         - Commentaire interne: "Date facture : X / Client / Statut : X (X%)"
+        - Colonne L: ID client tempo = nom du client extrait du libellé
+        - Colonne S: Numéro de contrat Tempo = numéro de facture
         """
         try:
             # Préparer les données selon le format spécifié
@@ -243,7 +245,7 @@ class GoogleSheetsClient:
             values = result.get('values', [])
             next_row = len(values) + 1
 
-            # Écrire la nouvelle ligne
+            # Écrire la nouvelle ligne principale (colonnes A à H)
             range_name = f'{self.sheet_name}!A{next_row}:H{next_row}'
             body = {
                 'values': [row_data]
@@ -259,9 +261,43 @@ class GoogleSheetsClient:
             # Délai de 1 seconde après l'écriture
             time.sleep(1)
 
+            # Écrire le nom du client dans la colonne L (ID client tempo)
+            client_range = f'{self.sheet_name}!L{next_row}'
+            client_body = {
+                'values': [[task_data.get('client_name', '')]]
+            }
+            
+            self.sheets_service.spreadsheets().values().update(
+                spreadsheetId=self.spreadsheet_id,
+                range=client_range,
+                valueInputOption='RAW',
+                body=client_body
+            ).execute()
+
+            # Délai de 1 seconde
+            time.sleep(1)
+
+            # Écrire le numéro de facture dans la colonne S (Numéro de contrat Tempo)
+            invoice_range = f'{self.sheet_name}!S{next_row}'
+            invoice_body = {
+                'values': [[task_data.get('invoice_number', '')]]
+            }
+            
+            self.sheets_service.spreadsheets().values().update(
+                spreadsheetId=self.spreadsheet_id,
+                range=invoice_range,
+                valueInputOption='RAW',
+                body=invoice_body
+            ).execute()
+
+            # Délai de 1 seconde après l'écriture
+            time.sleep(1)
+
             print(f"✓ Tâche créée à la ligne {next_row} dans '{self.sheet_name}' (ID: {unique_id})")
             print(f"  - {task_data.get('payment_status', 'N/A')} ({task_data.get('payment_percentage', 0):.0f}%)")
             print(f"  - Montant payé: {task_data.get('payment_amount', 'N/A')} sur {task_data.get('total_amount', 'N/A')}")
+            print(f"  - Numéro facture: {task_data.get('invoice_number', 'N/A')} (colonne S)")
+            print(f"  - Client: {task_data.get('client_name', 'N/A')} (colonne L)")
             return True
 
         except HttpError as e:

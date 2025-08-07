@@ -87,6 +87,21 @@ class PennylaneSheetsIntegration:
                     client_name = without_prefix.split(' - ')[0]
                     return client_name.strip()
             
+            # Format: "Avoir PROJET X AQUAPARK - 20572 (label généré)"
+            if label.startswith('Avoir '):
+                # Enlever "Avoir " au début
+                without_prefix = label[6:]  # "PROJET X AQUAPARK - 20572 (label généré)"
+                
+                # Trouver le premier "-" et prendre ce qui est avant
+                if ' - ' in without_prefix:
+                    client_name = without_prefix.split(' - ')[0]
+                    return client_name.strip()
+            
+            # Format: "PROJET X AQUAPARK - 20572 (label généré)" (sans préfixe)
+            if ' - ' in label:
+                client_name = label.split(' - ')[0]
+                return client_name.strip()
+            
             # Si le format n'est pas reconnu, retourner le label complet
             return label
         except:
@@ -123,10 +138,10 @@ class PennylaneSheetsIntegration:
             client_name = self.extract_client_name(invoice.get('label', 'N/A'))
             
             # Construire les champs modifiés avec plus de détails
-            champs_modifies = f"Numéro : {invoice_number} / Montant total : {total_formatted} / Montant payé : {paid_formatted} / Reste : {remaining_formatted}"
+            champs_modifies = f"Montant total : {total_formatted} / Montant payé : {paid_formatted} / Reste : {remaining_formatted}"
             
             # Commentaire interne avec statut de paiement
-            commentaire_interne = f"Date facture : {invoice_date} / {client_name} / Statut : {payment_status} ({payment_percentage:.0f}%)"
+            commentaire_interne = f"Date facture : {invoice_date} / Statut : {payment_status} ({payment_percentage:.0f}%)"
             
             return {
                 'invoice_number': invoice_number,
