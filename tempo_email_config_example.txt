@@ -1,0 +1,24 @@
+# Configuration Email Office365 pour l'intégration Tempo
+# Copiez ce contenu dans votre fichier .env
+
+# Configuration Office365 (même que dan-interim-app)
+OFFICE365_USER=your-email@yourdomain.com
+OFFICE365_PASSWORD=your-app-password
+OFFICE365_SENDER=your-email@yourdomain.com
+OFFICE365_SENDER_NAME=Intégration Tempo
+
+# Destinataires des alertes Tempo (séparés par des virgules)
+TEMPO_ALERT_EMAILS=admin@yourdomain.com,comptabilite@yourdomain.com
+
+# Configuration Tempo (existante)
+TEMPO_BASE_URL=https://<host>/API/Tempo
+TEMPO_DOSSIER=DAN02
+TEMPO_USERNAME=votre_identifiant
+TEMPO_PASSWORD=votre_mot_de_passe
+
+# Configuration Pennylane (existante)
+PENNYLANE_API_KEY=votre_cle_api_pennylane
+
+# Configuration Google Sheets (existante)
+GOOGLE_SHEETS_CREDENTIALS_FILE=credentials.json
+SPREADSHEET_ID=votre_spreadsheet_id

@@ -1,4 +1,4 @@
-name: Synchronisation Pennylane - Google Sheets
+name: Synchronisation Pennylane - Tempo - Google Sheets
 
 on:
   schedule:
@@ -33,17 +33,44 @@ jobs:
         echo "SPREADSHEET_ID=${{ vars.SPREADSHEET_ID }}" >> .env
         echo "SPREADSHEET_NAME=${{ vars.SPREADSHEET_NAME }}" >> .env
         
+        # Configuration Tempo
+        echo "TEMPO_BASE_URL=${{ secrets.TEMPO_BASE_URL }}" >> .env
+        echo "TEMPO_DOSSIER=${{ secrets.TEMPO_DOSSIER }}" >> .env
+        echo "TEMPO_USERNAME=${{ secrets.TEMPO_USERNAME }}" >> .env
+        echo "TEMPO_PASSWORD=${{ secrets.TEMPO_PASSWORD }}" >> .env
+        
+        # Configuration Office365
+        echo "OFFICE365_USER=${{ secrets.OFFICE365_USER }}" >> .env
+        echo "OFFICE365_PASSWORD=${{ secrets.OFFICE365_PASSWORD }}" >> .env
+        echo "OFFICE365_SENDER=${{ secrets.OFFICE365_SENDER }}" >> .env
+        echo "OFFICE365_SENDER_NAME=${{ secrets.OFFICE365_SENDER_NAME }}" >> .env
+        echo "TEMPO_ALERT_EMAILS=${{ secrets.TEMPO_ALERT_EMAILS }}" >> .env
+        
     - name: Configuration des credentials Google
       run: |
         echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
         
-    - name: Exécution de la synchronisation
+    - name: Exécution de la synchronisation Pennylane + Google Sheets
       run: |
         python3 main.py --auto
       env:
         PENNYLANE_API_KEY: ${{ secrets.PENNYLANE_API_KEY }}
         SPREADSHEET_ID: ${{ vars.SPREADSHEET_ID }}
         SPREADSHEET_NAME: ${{ vars.SPREADSHEET_NAME }}
+        
+    - name: Exécution de l'intégration Tempo
+      run: |
+        python3 tempo_integration.py --auto
+      env:
+        TEMPO_BASE_URL: ${{ secrets.TEMPO_BASE_URL }}
+        TEMPO_DOSSIER: ${{ secrets.TEMPO_DOSSIER }}
+        TEMPO_USERNAME: ${{ secrets.TEMPO_USERNAME }}
+        TEMPO_PASSWORD: ${{ secrets.TEMPO_PASSWORD }}
+        OFFICE365_USER: ${{ secrets.OFFICE365_USER }}
+        OFFICE365_PASSWORD: ${{ secrets.OFFICE365_PASSWORD }}
+        OFFICE365_SENDER: ${{ secrets.OFFICE365_SENDER }}
+        OFFICE365_SENDER_NAME: ${{ secrets.OFFICE365_SENDER_NAME }}
+        TEMPO_ALERT_EMAILS: ${{ secrets.TEMPO_ALERT_EMAILS }}
         
     - name: Nettoyage des credentials
       if: always()
