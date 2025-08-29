@@ -121,11 +121,11 @@ class TempoClient:
             if isinstance(date_reglement, datetime):
                 date_reglement = self._format_date_aaaammjj(date_reglement)
             
-                    payload = {
-            "IdFacture": id_facture,
-            "FactureRegle": "OUI",
-            "DateReglementTotal": date_reglement
-        }
+            payload = {
+                "IdFacture": id_facture,
+                "FactureRegle": "OUI",
+                "DateReglementTotal": date_reglement
+            }
             
             return self._post_reglement(payload, "règlement total")
             
