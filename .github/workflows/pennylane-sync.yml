@@ -41,7 +41,6 @@ jobs:
         echo "ARMADO_BASE_URL=${{ secrets.ARMADO_BASE_URL || 'https://api.myarmado.fr' }}" >> $GITHUB_ENV
         echo "ARMADO_TIMEOUT=${{ secrets.ARMADO_TIMEOUT || '10' }}" >> $GITHUB_ENV
         echo "GOOGLE_SHEETS_CREDENTIALS_FILE=/tmp/credentials.json" >> $GITHUB_ENV
-        echo "GOOGLE_CREDENTIALS=${{ secrets.GOOGLE_CREDENTIALS }}" >> $GITHUB_ENV
         
         # Variables (données non-sensibles)
         echo "GOOGLE_SHEETS_SPREADSHEET_ID=${{ vars.SPREADSHEET_ID }}" >> $GITHUB_ENV
@@ -52,7 +51,9 @@ jobs:
     
     - name: Configuration des credentials Google
       run: |
-        echo '${{ secrets.GOOGLE_CREDENTIALS }}' > /tmp/credentials.json
+        cat > /tmp/credentials.json << 'EOF'
+        ${{ secrets.GOOGLE_CREDENTIALS }}
+        EOF
         chmod 600 /tmp/credentials.json
     
     - name: Test de connexion Armado
