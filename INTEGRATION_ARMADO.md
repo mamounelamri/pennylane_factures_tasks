@@ -4,13 +4,20 @@ Ce document explique comment intégrer la synchronisation Armado après les mise
 
 ## Vue d'ensemble
 
-L'intégration permet de synchroniser automatiquement les paiements de Tempo vers Armado après chaque mise à jour réussie (`FACTUREREGLEMENT OK`).
+L'intégration permet de synchroniser automatiquement les paiements de Tempo vers Armado **uniquement** quand une facture est **complètement payée**.
 
 ### Flux de synchronisation
 
 1. **Mise à jour Tempo** : `FACTUREREGLEMENT` → Code 200
-2. **Recherche Armado** : Trouver la facture par référence (numéro Tempo)
-3. **Mise à jour Armado** : `PUT /v1/bill/:id` avec `paymentType` et `paymentDate`
+2. **Vérification statut** : Facture complètement payée ? (pas de paiement partiel)
+3. **Recherche Armado** : Trouver la facture par référence (numéro Tempo)
+4. **Mise à jour Armado** : `PUT /v1/bill/:id` avec `paymentType` et `paymentDate`
+
+### Comportement
+
+- ✅ **Facture complètement payée** → Synchronisation Armado
+- ❌ **Facture partiellement payée** → Pas de synchronisation Armado
+- ✅ **Google Sheets** → Toujours mis à jour (payée ou partiellement payée)
 
 ## Fichiers créés
 

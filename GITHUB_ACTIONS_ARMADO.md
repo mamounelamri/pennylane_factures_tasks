@@ -11,12 +11,15 @@ graph TD
     A[GitHub Actions - 12h00] --> B[Récupération factures Pennylane]
     B --> C[Filtrage factures payées aujourd'hui]
     C --> D[Création tâches Google Sheets]
-    D --> E{Mode test?}
-    E -->|Non| F[Synchronisation Armado]
-    E -->|Oui| G[Skip Armado]
-    F --> H[Log des résultats]
-    G --> H
-    H --> I[Fin du workflow]
+    D --> E{Facture complètement payée?}
+    E -->|Oui| F{Mode test?}
+    E -->|Non| G[Skip Armado - Paiement partiel]
+    F -->|Non| H[Synchronisation Armado]
+    F -->|Oui| I[Skip Armado - Mode test]
+    H --> J[Log des résultats]
+    G --> J
+    I --> J
+    J --> K[Fin du workflow]
 ```
 
 ## 📋 Configuration requise
@@ -120,6 +123,9 @@ Nombre total de factures analysées: 150
   ✓ Facture 20664 traitée (Payée)
 [Armado] Synchronisation: 20664 (Payée)
 [Armado] ✓ Synchronisé: 20664
+
+  ✓ Facture 20665 traitée (Partiellement payée)
+  ℹ Facture partiellement payée - pas de synchronisation Armado
 
 === Rapport de synchronisation ===
 Date d'exécution: 2024-01-15 12:05:00

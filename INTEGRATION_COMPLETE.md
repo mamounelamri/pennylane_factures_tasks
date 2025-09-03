@@ -79,8 +79,15 @@ else:
 ## 🔄 Flux de synchronisation
 
 1. **Mise à jour Tempo** → Code 200 ✅
-2. **Recherche Armado** → `GET /v1/bill?reference={numero_tempo}` ✅
-3. **Mise à jour Armado** → `PUT /v1/bill/{id}` avec `paymentType` + `paymentDate` ✅
+2. **Vérification statut** → Facture complètement payée ? ✅
+3. **Recherche Armado** → `GET /v1/bill?reference={numero_tempo}` ✅
+4. **Mise à jour Armado** → `PUT /v1/bill/{id}` avec `paymentType` + `paymentDate` ✅
+
+### Comportement
+
+- ✅ **Facture complètement payée** → Synchronisation Armado
+- ❌ **Facture partiellement payée** → Pas de synchronisation Armado
+- ✅ **Google Sheets** → Toujours mis à jour (tous statuts)
 
 ## 🛡️ Gestion d'erreurs
 
@@ -148,6 +155,11 @@ payment_mode = "virement"  # À personnaliser
 ```
 [Armado] Synchronisation: 20664 (Payée)
 [Armado] ✓ Synchronisé: 20664
+```
+
+### **Logs de paiement partiel**
+```
+  ℹ Facture partiellement payée - pas de synchronisation Armado
 ```
 
 ### **Logs d'erreur**

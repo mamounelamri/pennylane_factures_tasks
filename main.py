@@ -263,16 +263,19 @@ class PennylaneSheetsIntegration:
                 processed_count += 1
                 print(f"  ✓ Facture {task_data['invoice_number']} traitée ({task_data['payment_status']})")
                 
-                # Synchronisation Armado après succès Google Sheets
-                armado_result = self.sync_to_armado(
-                    invoice_number=task_data['invoice_number'],
-                    payment_status=task_data['payment_status'],
-                    payment_date=datetime.now()
-                )
-                
-                # Log du résultat Armado (ne fait pas échouer le traitement principal)
-                if not armado_result['success']:
-                    print(f"  ⚠ Synchronisation Armado échouée: {armado_result['error']}")
+                # Synchronisation Armado UNIQUEMENT pour les factures complètement payées
+                if task_data['payment_status'] == "Payée":
+                    armado_result = self.sync_to_armado(
+                        invoice_number=task_data['invoice_number'],
+                        payment_status=task_data['payment_status'],
+                        payment_date=datetime.now()
+                    )
+                    
+                    # Log du résultat Armado (ne fait pas échouer le traitement principal)
+                    if not armado_result['success']:
+                        print(f"  ⚠ Synchronisation Armado échouée: {armado_result['error']}")
+                else:
+                    print(f"  ℹ Facture partiellement payée - pas de synchronisation Armado")
                 
             else:
                 print(f"  ✗ Erreur lors du traitement de la facture {invoice.get('invoice_number', 'N/A')}")

@@ -2,7 +2,7 @@
 
 ## 🎯 Objectif
 
-Synchroniser automatiquement les paiements de Tempo vers Armado après chaque mise à jour réussie (`FACTUREREGLEMENT OK`).
+Synchroniser automatiquement les paiements de Tempo vers Armado **uniquement** quand une facture est **complètement payée**.
 
 ## 📋 Fonctionnalités
 
@@ -77,15 +77,23 @@ PAYMENT_TYPE_MAP = {
 ```mermaid
 graph TD
     A[Mise à jour Tempo] --> B{Code 200?}
-    B -->|Oui| C[Recherche facture Armado]
+    B -->|Oui| C{Facture complètement payée?}
     B -->|Non| D[Arrêt - Erreur Tempo]
-    C --> E{Facture trouvée?}
-    E -->|Oui| F[Mise à jour paiement Armado]
-    E -->|Non| G[Erreur - Facture introuvable]
-    F --> H{Succès?}
-    H -->|Oui| I[✓ Synchronisation OK]
-    H -->|Non| J[Erreur - Mise à jour échouée]
+    C -->|Oui| E[Recherche facture Armado]
+    C -->|Non| F[Skip Armado - Paiement partiel]
+    E --> G{Facture trouvée?}
+    G -->|Oui| H[Mise à jour paiement Armado]
+    G -->|Non| I[Erreur - Facture introuvable]
+    H --> J{Succès?}
+    J -->|Oui| K[✓ Synchronisation OK]
+    J -->|Non| L[Erreur - Mise à jour échouée]
 ```
+
+### Comportement
+
+- ✅ **Facture complètement payée** → Synchronisation Armado
+- ❌ **Facture partiellement payée** → Pas de synchronisation Armado  
+- ✅ **Google Sheets** → Toujours mis à jour (tous statuts)
 
 ## 🛡️ Gestion d'erreurs
 
