@@ -17,6 +17,7 @@ on:
 jobs:
   sync-pennylane-armado:
     runs-on: ubuntu-latest
+    environment: production
     
     steps:
     - name: Checkout du code
@@ -92,6 +93,7 @@ jobs:
   # Job séparé pour les tests unitaires
   test-armado-integration:
     runs-on: ubuntu-latest
+    environment: production
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.test_mode == 'true'
     
     steps:

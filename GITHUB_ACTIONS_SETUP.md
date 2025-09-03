@@ -11,6 +11,12 @@ Ce guide explique comment configurer l'exécution automatique de la synchronisat
 
 Dans votre repository GitHub, allez dans **Settings > Secrets and variables > Actions** et ajoutez les secrets suivants :
 
+### Option 1 : Secrets au niveau du repository
+Ajoutez les secrets directement dans **Repository secrets**.
+
+### Option 2 : Secrets dans un environnement (recommandé)
+Créez un environnement "production" dans **Environments** et ajoutez les secrets dans cet environnement. Le workflow est configuré pour utiliser l'environnement "production".
+
 ### 1. PENNYLANE_API_KEY
 Votre clé API Pennylane v2
 

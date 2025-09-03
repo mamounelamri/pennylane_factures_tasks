@@ -26,7 +26,7 @@ graph TD
 
 ### Secrets GitHub
 
-Ajoutez ces secrets dans **Settings > Secrets and variables > Actions** :
+Le workflow utilise l'environnement "production". Ajoutez ces secrets dans **Settings > Secrets and variables > Actions > Environments > production** :
 
 | Secret | Description | Obligatoire |
 |--------|-------------|-------------|
