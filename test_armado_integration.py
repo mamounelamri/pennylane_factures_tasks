@@ -23,7 +23,10 @@ class TestArmadoClient(unittest.TestCase):
         # Mock de la réponse API
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.return_value = [{'id': 12345, 'reference': '20664'}]
+        mock_response.json.return_value = {
+            "count": 1,
+            "list": [{'id': 12345, 'reference': '20664'}]
+        }
         mock_request.return_value = mock_response
         
         # Test
@@ -43,7 +46,7 @@ class TestArmadoClient(unittest.TestCase):
         # Mock de la réponse API
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.return_value = []
+        mock_response.json.return_value = {"count": 0, "list": []}
         mock_request.return_value = mock_response
         
         # Test

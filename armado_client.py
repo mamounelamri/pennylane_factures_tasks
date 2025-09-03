@@ -100,14 +100,20 @@ class ArmadoClient:
             
             data = response.json()
             
-            # L'API retourne une liste de factures
-            if isinstance(data, list) and len(data) > 0:
-                bill_id = data[0].get('id')
+            # L'API retourne soit une liste directe, soit un objet avec "list"
+            bills = []
+            if isinstance(data, list):
+                bills = data
+            elif isinstance(data, dict) and 'list' in data:
+                bills = data['list']
+            
+            if bills and len(bills) > 0:
+                bill_id = bills[0].get('id')
                 if bill_id:
                     print(f"[Armado] Facture trouvée: ID={bill_id}, référence={reference}")
                     return bill_id
                 else:
-                    print(f"[Armado] Facture trouvée mais sans ID: {data[0]}")
+                    print(f"[Armado] Facture trouvée mais sans ID: {bills[0]}")
                     return None
             else:
                 print(f"[Armado] Aucune facture trouvée avec la référence: {reference}")
