@@ -15,7 +15,20 @@ Dans votre repository GitHub, allez dans **Settings > Secrets and variables > Ac
 Ajoutez les secrets directement dans **Repository secrets**.
 
 ### Option 2 : Secrets dans un environnement (recommandé)
-Créez un environnement "production" dans **Environments** et ajoutez les secrets dans cet environnement. Le workflow est configuré pour utiliser l'environnement "production".
+Créez un environnement "production" dans **Environments** et configurez :
+
+**Secrets** (données sensibles) :
+- `PENNYLANE_API_KEY`
+- `ARMADO_API_KEY` 
+- `ARMADO_BASE_URL`
+- `ARMADO_TIMEOUT`
+- `GOOGLE_CREDENTIALS`
+
+**Variables** (données non-sensibles) :
+- `SPREADSHEET_ID`
+- `SPREADSHEET_NAME`
+
+Le workflow est configuré pour utiliser l'environnement "production".
 
 ### 1. PENNYLANE_API_KEY
 Votre clé API Pennylane v2

@@ -35,13 +35,19 @@ jobs:
     
     - name: Configuration des variables d'environnement
       run: |
+        # Secrets (données sensibles)
         echo "PENNYLANE_API_KEY=${{ secrets.PENNYLANE_API_KEY }}" >> $GITHUB_ENV
         echo "ARMADO_API_KEY=${{ secrets.ARMADO_API_KEY }}" >> $GITHUB_ENV
         echo "ARMADO_BASE_URL=${{ secrets.ARMADO_BASE_URL || 'https://api.myarmado.fr' }}" >> $GITHUB_ENV
         echo "ARMADO_TIMEOUT=${{ secrets.ARMADO_TIMEOUT || '10' }}" >> $GITHUB_ENV
         echo "GOOGLE_SHEETS_CREDENTIALS_FILE=/tmp/credentials.json" >> $GITHUB_ENV
-        echo "GOOGLE_SHEETS_SPREADSHEET_ID=${{ secrets.SPREADSHEET_ID }}" >> $GITHUB_ENV
-        echo "GOOGLE_SHEETS_SHEET_NAME=${{ secrets.SPREADSHEET_NAME || 'Tâches à réaliser' }}" >> $GITHUB_ENV
+        echo "GOOGLE_CREDENTIALS=${{ secrets.GOOGLE_CREDENTIALS }}" >> $GITHUB_ENV
+        
+        # Variables (données non-sensibles)
+        echo "GOOGLE_SHEETS_SPREADSHEET_ID=${{ vars.SPREADSHEET_ID }}" >> $GITHUB_ENV
+        echo "GOOGLE_SHEETS_SHEET_NAME=${{ vars.SPREADSHEET_NAME || 'Tâches à réaliser' }}" >> $GITHUB_ENV
+        
+        # Variables de contrôle
         echo "TEST_MODE=${{ github.event.inputs.test_mode || 'false' }}" >> $GITHUB_ENV
     
     - name: Configuration des credentials Google

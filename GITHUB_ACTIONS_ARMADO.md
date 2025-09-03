@@ -26,17 +26,26 @@ graph TD
 
 ### Secrets GitHub
 
-Le workflow utilise l'environnement "production". Ajoutez ces secrets dans **Settings > Secrets and variables > Actions > Environments > production** :
+Le workflow utilise l'environnement "production" avec une configuration hybride :
+
+### **Secrets** (données sensibles)
+Dans **Settings > Secrets and variables > Actions > Environments > production > Secrets** :
 
 | Secret | Description | Obligatoire |
 |--------|-------------|-------------|
 | `PENNYLANE_API_KEY` | Clé API Pennylane v2 | ✅ |
 | `ARMADO_API_KEY` | Clé API Armado | ✅ |
-| `SPREADSHEET_ID` | ID Google Spreadsheet | ✅ |
 | `GOOGLE_CREDENTIALS` | Contenu credentials.json | ✅ |
-| `SPREADSHEET_NAME` | Nom de la feuille | ❌ (défaut: "Tâches à réaliser") |
 | `ARMADO_BASE_URL` | URL API Armado | ❌ (défaut: "https://api.myarmado.fr") |
 | `ARMADO_TIMEOUT` | Timeout en secondes | ❌ (défaut: "10") |
+
+### **Variables** (données non-sensibles)
+Dans **Settings > Secrets and variables > Actions > Environments > production > Variables** :
+
+| Variable | Description | Obligatoire |
+|----------|-------------|-------------|
+| `SPREADSHEET_ID` | ID Google Spreadsheet | ✅ |
+| `SPREADSHEET_NAME` | Nom de la feuille | ❌ (défaut: "Tâches à réaliser") |
 
 ### Variables d'environnement automatiques
 
