@@ -43,8 +43,8 @@ jobs:
         echo "GOOGLE_SHEETS_CREDENTIALS_FILE=/tmp/credentials.json" >> $GITHUB_ENV
         
         # Variables (données non-sensibles)
-        echo "GOOGLE_SHEETS_SPREADSHEET_ID=${{ vars.SPREADSHEET_ID }}" >> $GITHUB_ENV
-        echo "GOOGLE_SHEETS_SHEET_NAME=${{ vars.SPREADSHEET_NAME || 'Tâches à réaliser' }}" >> $GITHUB_ENV
+        echo "SPREADSHEET_ID=${{ vars.SPREADSHEET_ID }}" >> $GITHUB_ENV
+        echo "SPREADSHEET_NAME=${{ vars.SPREADSHEET_NAME || 'Tâches à réaliser' }}" >> $GITHUB_ENV
         
         # Variables de contrôle
         echo "TEST_MODE=${{ github.event.inputs.test_mode || 'false' }}" >> $GITHUB_ENV
