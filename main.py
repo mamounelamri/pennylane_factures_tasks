@@ -10,17 +10,19 @@ from dotenv import load_dotenv
 
 from pennylane_client import PennylaneClient
 from google_sheets_client import GoogleSheetsClient
+from sync_payments import sync_with_error_handling
 
 load_dotenv()
 
 class PennylaneSheetsIntegration:
-    """Intégration entre Pennylane v2 et Google Sheets"""
+    """Intégration entre Pennylane v2, Google Sheets et Armado"""
     
-    def __init__(self):
+    def __init__(self, test_mode=False):
         self.pennylane_client = PennylaneClient()
         self.sheets_client = GoogleSheetsClient()
         self.processed_items_file = 'processed_items.json'
         self.processed_items = self.load_processed_items()
+        self.test_mode = test_mode
     
     def load_processed_items(self) -> Set[str]:
         """Charge la liste des éléments déjà traités"""
@@ -106,6 +108,46 @@ class PennylaneSheetsIntegration:
             return label
         except:
             return label
+    
+    def sync_to_armado(self, invoice_number: str, payment_status: str, payment_date: datetime) -> Dict:
+        """
+        Synchronise le paiement vers Armado
+        
+        Args:
+            invoice_number: Numéro de facture Tempo
+            payment_status: Statut de paiement (Payée, Partiellement payée)
+            payment_date: Date de paiement
+            
+        Returns:
+            Résultat de la synchronisation
+        """
+        if self.test_mode:
+            print(f"[Armado] Mode test - synchronisation désactivée pour {invoice_number}")
+            return {'success': True, 'data': None, 'error': None}
+        
+        try:
+            # Déterminer le mode de paiement par défaut (à adapter selon vos besoins)
+            payment_mode = "virement"  # Mode par défaut, à personnaliser
+            
+            print(f"[Armado] Synchronisation: {invoice_number} ({payment_status})")
+            
+            result = sync_with_error_handling(
+                invoice_reference=invoice_number,
+                payment_mode=payment_mode,
+                payment_date=payment_date
+            )
+            
+            if result['success']:
+                print(f"[Armado] ✓ Synchronisé: {invoice_number}")
+            else:
+                print(f"[Armado] ✗ Erreur: {result['error']}")
+            
+            return result
+            
+        except Exception as e:
+            error_msg = f"Erreur inattendue Armado: {e}"
+            print(f"[Armado] ✗ {error_msg}")
+            return {'success': False, 'data': None, 'error': error_msg}
     
     def create_task_from_invoice(self, invoice: Dict) -> Dict:
         """Crée les données de tâche à partir d'une facture Pennylane"""
@@ -220,6 +262,18 @@ class PennylaneSheetsIntegration:
                 self.processed_items.add(invoice_id)
                 processed_count += 1
                 print(f"  ✓ Facture {task_data['invoice_number']} traitée ({task_data['payment_status']})")
+                
+                # Synchronisation Armado après succès Google Sheets
+                armado_result = self.sync_to_armado(
+                    invoice_number=task_data['invoice_number'],
+                    payment_status=task_data['payment_status'],
+                    payment_date=datetime.now()
+                )
+                
+                # Log du résultat Armado (ne fait pas échouer le traitement principal)
+                if not armado_result['success']:
+                    print(f"  ⚠ Synchronisation Armado échouée: {armado_result['error']}")
+                
             else:
                 print(f"  ✗ Erreur lors du traitement de la facture {invoice.get('invoice_number', 'N/A')}")
 
@@ -290,14 +344,20 @@ class PennylaneSheetsIntegration:
 
 def main():
     """Fonction principale"""
-    parser = argparse.ArgumentParser(description='Intégration Pennylane v2 - Google Sheets')
+    parser = argparse.ArgumentParser(description='Intégration Pennylane v2 - Google Sheets - Armado')
     parser.add_argument('--auto', action='store_true', help='Mode automatique pour GitHub Actions')
+    parser.add_argument('--test-mode', action='store_true', help='Mode test (désactive la synchronisation Armado)')
     args = parser.parse_args()
     
-    print("=== Intégration Pennylane v2 - Google Sheets ===\n")
+    print("=== Intégration Pennylane v2 - Google Sheets - Armado ===\n")
+    
+    # Déterminer le mode test
+    test_mode = args.test_mode or os.getenv('TEST_MODE', 'false').lower() == 'true'
+    if test_mode:
+        print("🧪 Mode test activé - synchronisation Armado désactivée")
     
     try:
-        integration = PennylaneSheetsIntegration()
+        integration = PennylaneSheetsIntegration(test_mode=test_mode)
         
         if args.auto:
             # Mode automatique pour GitHub Actions

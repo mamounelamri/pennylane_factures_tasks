@@ -1,6 +1,6 @@
 # Configuration GitHub Actions
 
-Ce guide explique comment configurer l'exécution automatique de la synchronisation Pennylane-Google Sheets via GitHub Actions.
+Ce guide explique comment configurer l'exécution automatique de la synchronisation Pennylane-Google Sheets-Armado via GitHub Actions.
 
 ## Prérequis
 
@@ -23,6 +23,15 @@ Le nom de la feuille dans votre spreadsheet (ex: `Tâches à réaliser`)
 ### 4. GOOGLE_CREDENTIALS
 Le contenu complet de votre fichier `credentials.json` Google Service Account
 
+### 5. ARMADO_API_KEY
+Votre clé API Armado pour la synchronisation des paiements
+
+### 6. ARMADO_BASE_URL (optionnel)
+URL de base de l'API Armado (par défaut: `https://api.myarmado.fr`)
+
+### 7. ARMADO_TIMEOUT (optionnel)
+Timeout pour les requêtes Armado en secondes (par défaut: `10`)
+
 ## Configuration du Service Account Google
 
 1. Allez sur [Google Cloud Console](https://console.cloud.google.com/)
@@ -41,8 +50,12 @@ Le contenu complet de votre fichier `credentials.json` Google Service Account
 Le workflow `.github/workflows/pennylane-sync.yml` :
 
 - **Déclenchement** : Tous les jours à 12h00 heure française (11h00 UTC)
-- **Exécution manuelle** : Possible via l'interface GitHub
+- **Exécution manuelle** : Possible via l'interface GitHub avec option mode test
 - **Environnement** : Ubuntu latest avec Python 3.11
+- **Fonctionnalités** :
+  - Synchronisation Pennylane → Google Sheets
+  - Synchronisation Pennylane → Armado (paiements)
+  - Mode test pour désactiver la synchronisation Armado
 
 ## Exécution
 
@@ -51,8 +64,9 @@ Le workflow s'exécute automatiquement tous les jours à 12h00.
 
 ### Manuelle
 1. Allez dans l'onglet **Actions** de votre repository
-2. Sélectionnez le workflow "Synchronisation Pennylane - Google Sheets"
+2. Sélectionnez le workflow "Synchronisation Pennylane - Google Sheets - Armado"
 3. Cliquez sur **Run workflow**
+4. Optionnel : Activez le mode test pour désactiver la synchronisation Armado
 
 ## Monitoring
 
@@ -80,6 +94,11 @@ Le workflow s'exécute automatiquement tous les jours à 12h00.
    - Vérifiez que tous les secrets sont configurés
    - Vérifiez les noms des secrets
 
+4. **Erreur de synchronisation Armado**
+   - Vérifiez que ARMADO_API_KEY est valide
+   - Vérifiez la connectivité réseau vers api.myarmado.fr
+   - Utilisez le mode test pour diagnostiquer
+
 ### Test local
 
 Avant de déployer sur GitHub Actions, testez localement :
@@ -87,6 +106,12 @@ Avant de déployer sur GitHub Actions, testez localement :
 ```bash
 # Test avec le mode automatique
 python3 main.py --auto
+
+# Test avec le mode test (désactive Armado)
+python3 main.py --auto --test-mode
+
+# Test de connexion Armado
+python3 test_quick_armado.py
 ```
 
 ## Sécurité

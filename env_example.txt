@@ -1,0 +1,15 @@
+# Configuration Pennylane (existante)
+PENNYLANE_API_KEY=your_pennylane_api_key_here
+
+# Configuration Google Sheets (existante)
+GOOGLE_SHEETS_CREDENTIALS_FILE=path/to/your/credentials.json
+GOOGLE_SHEETS_SPREADSHEET_ID=your_spreadsheet_id_here
+
+# Configuration Armado (nouvelle)
+ARMADO_API_KEY=your_armado_api_key_here
+ARMADO_BASE_URL=https://api.myarmado.fr
+ARMADO_TIMEOUT=10
+
+# Configuration Tempo (si applicable)
+TEMPO_API_KEY=your_tempo_api_key_here
+TEMPO_BASE_URL=https://your_tempo_api_url_here

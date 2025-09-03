@@ -1,79 +1,126 @@
-name: Synchronisation Pennylane - Tempo - Google Sheets
+name: Synchronisation Pennylane - Google Sheets - Armado
 
 on:
+  # Exécution automatique tous les jours à 12h00 heure française (11h00 UTC)
   schedule:
-    # Exécution tous les jours à 12h00 heure française (10h00 UTC en hiver, 11h00 UTC en été)
-    # Utilisation de 11h00 UTC pour couvrir les deux fuseaux horaires
     - cron: '0 11 * * *'
-  workflow_dispatch:  # Permet l'exécution manuelle depuis l'interface GitHub
+  
+  # Exécution manuelle
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Mode test (ne synchronise pas Armado)'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
-  sync-pennylane:
+  sync-pennylane-armado:
     runs-on: ubuntu-latest
-    environment: production  # Utilise l'environnement production
     
     steps:
     - name: Checkout du code
       uses: actions/checkout@v4
-      
+    
     - name: Configuration Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-        
+    
     - name: Installation des dépendances
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        
+    
     - name: Configuration des variables d'environnement
       run: |
-        echo "PENNYLANE_API_KEY=${{ secrets.PENNYLANE_API_KEY }}" >> .env
-        echo "GOOGLE_SHEETS_CREDENTIALS_FILE=credentials.json" >> .env
-        echo "SPREADSHEET_ID=${{ vars.SPREADSHEET_ID }}" >> .env
-        echo "SPREADSHEET_NAME=${{ vars.SPREADSHEET_NAME }}" >> .env
-        
-        # Configuration Tempo
-        echo "TEMPO_BASE_URL=${{ secrets.TEMPO_BASE_URL }}" >> .env
-        echo "TEMPO_DOSSIER=${{ secrets.TEMPO_DOSSIER }}" >> .env
-        echo "TEMPO_USERNAME=${{ secrets.TEMPO_USERNAME }}" >> .env
-        echo "TEMPO_PASSWORD=${{ secrets.TEMPO_PASSWORD }}" >> .env
-        
-        # Configuration Office365
-        echo "OFFICE365_USER=${{ secrets.OFFICE365_USER }}" >> .env
-        echo "OFFICE365_PASSWORD=${{ secrets.OFFICE365_PASSWORD }}" >> .env
-        echo "OFFICE365_SENDER=${{ secrets.OFFICE365_SENDER }}" >> .env
-        echo "OFFICE365_SENDER_NAME=${{ secrets.OFFICE365_SENDER_NAME }}" >> .env
-        echo "TEMPO_ALERT_EMAILS=${{ secrets.TEMPO_ALERT_EMAILS }}" >> .env
-        
+        echo "PENNYLANE_API_KEY=${{ secrets.PENNYLANE_API_KEY }}" >> $GITHUB_ENV
+        echo "ARMADO_API_KEY=${{ secrets.ARMADO_API_KEY }}" >> $GITHUB_ENV
+        echo "ARMADO_BASE_URL=${{ secrets.ARMADO_BASE_URL || 'https://api.myarmado.fr' }}" >> $GITHUB_ENV
+        echo "ARMADO_TIMEOUT=${{ secrets.ARMADO_TIMEOUT || '10' }}" >> $GITHUB_ENV
+        echo "GOOGLE_SHEETS_CREDENTIALS_FILE=/tmp/credentials.json" >> $GITHUB_ENV
+        echo "GOOGLE_SHEETS_SPREADSHEET_ID=${{ secrets.SPREADSHEET_ID }}" >> $GITHUB_ENV
+        echo "GOOGLE_SHEETS_SHEET_NAME=${{ secrets.SPREADSHEET_NAME || 'Tâches à réaliser' }}" >> $GITHUB_ENV
+        echo "TEST_MODE=${{ github.event.inputs.test_mode || 'false' }}" >> $GITHUB_ENV
+    
     - name: Configuration des credentials Google
       run: |
-        echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
-        
-    - name: Exécution de la synchronisation Pennylane + Google Sheets
+        echo '${{ secrets.GOOGLE_CREDENTIALS }}' > /tmp/credentials.json
+        chmod 600 /tmp/credentials.json
+    
+    - name: Test de connexion Armado
+      if: env.TEST_MODE == 'false'
       run: |
-        python3 main.py --auto
-      env:
-        PENNYLANE_API_KEY: ${{ secrets.PENNYLANE_API_KEY }}
-        SPREADSHEET_ID: ${{ vars.SPREADSHEET_ID }}
-        SPREADSHEET_NAME: ${{ vars.SPREADSHEET_NAME }}
-        
-    - name: Exécution de l'intégration Tempo
+        echo "=== Test de connexion Armado ==="
+        python test_quick_armado.py
+      continue-on-error: true
+    
+    - name: Exécution de la synchronisation
       run: |
-        python3 tempo_integration.py --auto
-      env:
-        TEMPO_BASE_URL: ${{ secrets.TEMPO_BASE_URL }}
-        TEMPO_DOSSIER: ${{ secrets.TEMPO_DOSSIER }}
-        TEMPO_USERNAME: ${{ secrets.TEMPO_USERNAME }}
-        TEMPO_PASSWORD: ${{ secrets.TEMPO_PASSWORD }}
-        OFFICE365_USER: ${{ secrets.OFFICE365_USER }}
-        OFFICE365_PASSWORD: ${{ secrets.OFFICE365_PASSWORD }}
-        OFFICE365_SENDER: ${{ secrets.OFFICE365_SENDER }}
-        OFFICE365_SENDER_NAME: ${{ secrets.OFFICE365_SENDER_NAME }}
-        TEMPO_ALERT_EMAILS: ${{ secrets.TEMPO_ALERT_EMAILS }}
+        echo "=== Début de la synchronisation ==="
+        echo "Mode test: $TEST_MODE"
+        echo "Date: $(date)"
         
+        if [ "$TEST_MODE" = "true" ]; then
+          echo "Mode test activé - synchronisation Armado désactivée"
+          python main.py --auto --test-mode
+        else
+          echo "Mode production - synchronisation Armado activée"
+          python main.py --auto
+        fi
+    
     - name: Nettoyage des credentials
       if: always()
       run: |
-        rm -f credentials.json
-        rm -f .env 
+        rm -f /tmp/credentials.json
+        echo "Credentials nettoyés"
+    
+    - name: Rapport de synchronisation
+      if: always()
+      run: |
+        echo "=== Rapport de synchronisation ==="
+        echo "Date d'exécution: $(date)"
+        echo "Mode test: $TEST_MODE"
+        echo "Statut: ${{ job.status }}"
+        
+        if [ -f "processed_items.json" ]; then
+          echo "Fichier processed_items.json présent"
+        else
+          echo "Aucun élément traité"
+        fi
+
+  # Job séparé pour les tests unitaires
+  test-armado-integration:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.test_mode == 'true'
+    
+    steps:
+    - name: Checkout du code
+      uses: actions/checkout@v4
+    
+    - name: Configuration Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Installation des dépendances
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest
+    
+    - name: Configuration des variables d'environnement pour les tests
+      run: |
+        echo "ARMADO_API_KEY=test_key" >> $GITHUB_ENV
+        echo "ARMADO_BASE_URL=https://api.test.armado.fr" >> $GITHUB_ENV
+        echo "ARMADO_TIMEOUT=5" >> $GITHUB_ENV
+    
+    - name: Exécution des tests unitaires
+      run: |
+        echo "=== Tests unitaires Armado ==="
+        python -m pytest test_armado_integration.py -v --tb=short
+    
+    - name: Test de connexion (avec mock)
+      run: |
+        echo "=== Test de connexion avec mock ==="
+        python test_quick_armado.py
