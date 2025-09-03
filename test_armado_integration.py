@@ -34,7 +34,8 @@ class TestArmadoClient(unittest.TestCase):
         mock_request.assert_called_once()
         call_args = mock_request.call_args
         self.assertEqual(call_args[1]['method'], 'GET')
-        self.assertIn('reference=20664', call_args[1]['url'])
+        self.assertEqual(call_args[1]['url'], 'https://api.test.armado.fr/v1/bill')
+        self.assertEqual(call_args[1]['params']['reference'], '20664')
     
     @patch('requests.request')
     def test_find_bill_id_by_reference_not_found(self, mock_request):
@@ -244,10 +245,13 @@ class TestIntegration(unittest.TestCase):
     
     def test_armado_client_initialization(self):
         """Test d'initialisation du client Armado"""
-        with patch.dict('os.environ', {'ARMADO_API_KEY': 'test_key'}):
+        with patch.dict('os.environ', {
+            'ARMADO_API_KEY': 'test_key',
+            'ARMADO_BASE_URL': 'https://api.test.armado.fr'
+        }):
             client = ArmadoClient()
             self.assertEqual(client.api_key, 'test_key')
-            self.assertEqual(client.base_url, 'https://api.myarmado.fr')
+            self.assertEqual(client.base_url, 'https://api.test.armado.fr')
     
     def test_armado_client_missing_api_key(self):
         """Test d'initialisation sans API key"""
