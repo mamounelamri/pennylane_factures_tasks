@@ -42,6 +42,19 @@ jobs:
         echo "ARMADO_TIMEOUT=${{ secrets.ARMADO_TIMEOUT || '10' }}" >> $GITHUB_ENV
         echo "GOOGLE_SHEETS_CREDENTIALS_FILE=/tmp/credentials.json" >> $GITHUB_ENV
         
+        # Configuration Tempo
+        echo "TEMPO_BASE_URL=${{ secrets.TEMPO_BASE_URL }}" >> $GITHUB_ENV
+        echo "TEMPO_DOSSIER=${{ secrets.TEMPO_DOSSIER }}" >> $GITHUB_ENV
+        echo "TEMPO_USERNAME=${{ secrets.TEMPO_USERNAME }}" >> $GITHUB_ENV
+        echo "TEMPO_PASSWORD=${{ secrets.TEMPO_PASSWORD }}" >> $GITHUB_ENV
+        
+        # Configuration Office365 (pour les alertes Tempo)
+        echo "OFFICE365_USER=${{ secrets.OFFICE365_USER }}" >> $GITHUB_ENV
+        echo "OFFICE365_PASSWORD=${{ secrets.OFFICE365_PASSWORD }}" >> $GITHUB_ENV
+        echo "OFFICE365_SENDER=${{ secrets.OFFICE365_SENDER }}" >> $GITHUB_ENV
+        echo "OFFICE365_SENDER_NAME=${{ secrets.OFFICE365_SENDER_NAME }}" >> $GITHUB_ENV
+        echo "TEMPO_ALERT_EMAILS=${{ secrets.TEMPO_ALERT_EMAILS }}" >> $GITHUB_ENV
+        
         # Variables (données non-sensibles)
         echo "SPREADSHEET_ID=${{ vars.SPREADSHEET_ID }}" >> $GITHUB_ENV
         echo "SPREADSHEET_NAME=${{ vars.SPREADSHEET_NAME || 'Tâches à réaliser' }}" >> $GITHUB_ENV
