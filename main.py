@@ -75,6 +75,18 @@ class PennylaneSheetsIntegration:
         except:
             return False
     
+    def is_date_yesterday(self, date_str: str) -> bool:
+        """Vérifie si une date correspond à hier"""
+        if not date_str:
+            return False
+        try:
+            # Parser la date ISO
+            date_obj = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            yesterday = (datetime.now() - timedelta(days=1)).date()
+            return date_obj.date() == yesterday
+        except:
+            return False
+    
     def extract_client_name(self, label: str) -> str:
         """Extrait le nom du client du label de facture"""
         if not label:
@@ -250,9 +262,10 @@ class PennylaneSheetsIntegration:
             return {}
     
     def process_paid_invoices_today(self):
-        """Traite les factures passées en statut payé aujourd'hui"""
+        """Traite les factures passées en statut payé hier (pour le workflow 3h du matin)"""
+        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
         today = datetime.now().strftime('%Y-%m-%d')
-        print(f"\n=== Traitement des factures payées aujourd'hui ({today}) - {datetime.now().strftime('%d/%m/%Y %H:%M')} ===")
+        print(f"\n=== Traitement des factures payées hier ({yesterday}) - {datetime.now().strftime('%d/%m/%Y %H:%M')} ===")
 
         # Récupérer TOUTES les factures
         all_invoices = self.pennylane_client.get_all_invoices()
@@ -260,13 +273,13 @@ class PennylaneSheetsIntegration:
         # Filtrer uniquement les factures (pas les avoirs)
         regular_invoices = [inv for inv in all_invoices if inv.get('status') != 'credit_note']
 
-        # Filtrer les factures avec paiement ET mises à jour aujourd'hui
-        paid_invoices_today = []
-        partially_paid_invoices_today = []
+        # Filtrer les factures avec paiement ET mises à jour hier
+        paid_invoices_yesterday = []
+        partially_paid_invoices_yesterday = []
         
         for invoice in regular_invoices:
-            # Vérifier si la facture a été mise à jour aujourd'hui
-            if not self.is_date_today(invoice.get('updated_at')):
+            # Vérifier si la facture a été mise à jour hier
+            if not self.is_date_yesterday(invoice.get('updated_at')):
                 continue
                 
             # Calculer les montants avec gestion des valeurs None
@@ -276,15 +289,15 @@ class PennylaneSheetsIntegration:
             
             # Classifier selon le montant payé
             if paid_amount >= total_amount or remaining_amount <= 0:
-                paid_invoices_today.append(invoice)
+                paid_invoices_yesterday.append(invoice)
             elif paid_amount > 0:
-                partially_paid_invoices_today.append(invoice)
+                partially_paid_invoices_yesterday.append(invoice)
 
-        all_invoices_to_process = paid_invoices_today + partially_paid_invoices_today
+        all_invoices_to_process = paid_invoices_yesterday + partially_paid_invoices_yesterday
 
         print(f"Nombre total de factures analysées: {len(regular_invoices)}")
-        print(f"  - Factures payées aujourd'hui: {len(paid_invoices_today)}")
-        print(f"  - Factures partiellement payées aujourd'hui: {len(partially_paid_invoices_today)}")
+        print(f"  - Factures payées hier: {len(paid_invoices_yesterday)}")
+        print(f"  - Factures partiellement payées hier: {len(partially_paid_invoices_yesterday)}")
         print(f"  - Avoirs ignorés: {len([inv for inv in all_invoices if inv.get('status') == 'credit_note'])}")
 
         processed_count = 0
@@ -351,9 +364,9 @@ class PennylaneSheetsIntegration:
         # Sauvegarder les éléments traités
         if processed_count > 0:
             self.save_processed_items()
-            print(f"\n{processed_count} nouvelles factures traitées aujourd'hui")
+            print(f"\n{processed_count} nouvelles factures traitées (payées hier)")
         else:
-            print("\nAucune nouvelle facture payée aujourd'hui")
+            print("\nAucune nouvelle facture payée hier")
     
     def run_initial_setup(self):
         """Configuration initiale"""
