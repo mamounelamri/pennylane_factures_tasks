@@ -11,15 +11,17 @@ from dotenv import load_dotenv
 from pennylane_client import PennylaneClient
 from google_sheets_client import GoogleSheetsClient
 from sync_payments import sync_with_error_handling
+from tempo_client import TempoClient
 
 load_dotenv()
 
 class PennylaneSheetsIntegration:
-    """Intégration entre Pennylane v2, Google Sheets et Armado"""
+    """Intégration entre Pennylane v2, Google Sheets, Tempo et Armado"""
     
     def __init__(self, test_mode=False):
         self.pennylane_client = PennylaneClient()
         self.sheets_client = GoogleSheetsClient()
+        self.tempo_client = TempoClient()
         self.processed_items_file = 'processed_items.json'
         self.processed_items = self.load_processed_items()
         self.test_mode = test_mode
@@ -149,6 +151,50 @@ class PennylaneSheetsIntegration:
             print(f"[Armado] ✗ {error_msg}")
             return {'success': False, 'data': None, 'error': error_msg}
     
+    def sync_to_tempo(self, invoice_number: str, payment_amount: float, payment_date: datetime, is_fully_paid: bool) -> Dict:
+        """
+        Synchronise le paiement vers Tempo
+        
+        Args:
+            invoice_number: Numéro de facture Tempo
+            payment_amount: Montant du paiement
+            payment_date: Date de paiement
+            is_fully_paid: Si la facture est complètement payée
+            
+        Returns:
+            Résultat de la synchronisation
+        """
+        if self.test_mode:
+            print(f"[Tempo] Mode test - synchronisation désactivée pour {invoice_number}")
+            return {'success': True, 'data': None, 'error': None}
+        
+        try:
+            print(f"[Tempo] Synchronisation: {invoice_number} (Montant: {payment_amount}€, {'Total' if is_fully_paid else 'Partiel'})")
+            
+            # Formater la date pour Tempo (AAAAMMJJ)
+            payment_date_str = payment_date.strftime("%Y%m%d")
+            
+            # Enregistrer le règlement dans Tempo
+            if is_fully_paid:
+                # Règlement total
+                success = self.tempo_client.enregistrer_reglement_total(invoice_number, payment_date_str)
+            else:
+                # Règlement partiel
+                success = self.tempo_client.enregistrer_reglement_partiel(invoice_number, payment_amount, payment_date_str)
+            
+            if success:
+                print(f"[Tempo] ✓ Synchronisé: {invoice_number}")
+                return {'success': True, 'data': {'invoice_number': invoice_number, 'amount': payment_amount}, 'error': None}
+            else:
+                error_msg = f"Échec de l'enregistrement du règlement dans Tempo"
+                print(f"[Tempo] ✗ {error_msg}")
+                return {'success': False, 'data': None, 'error': error_msg}
+            
+        except Exception as e:
+            error_msg = f"Erreur inattendue Tempo: {e}"
+            print(f"[Tempo] ✗ {error_msg}")
+            return {'success': False, 'data': None, 'error': error_msg}
+    
     def create_task_from_invoice(self, invoice: Dict) -> Dict:
         """Crée les données de tâche à partir d'une facture Pennylane"""
         try:
@@ -263,8 +309,27 @@ class PennylaneSheetsIntegration:
                 processed_count += 1
                 print(f"  ✓ Facture {task_data['invoice_number']} traitée ({task_data['payment_status']})")
                 
-                # Synchronisation Armado UNIQUEMENT pour les factures complètement payées
+                # Synchronisation Tempo et Armado UNIQUEMENT pour les factures complètement payées
                 if task_data['payment_status'] == "Payée":
+                    # Calculer les montants pour Tempo
+                    total_amount = float(invoice.get('amount', 0) or 0)
+                    remaining_amount = float(invoice.get('remaining_amount_with_tax', 0) or 0)
+                    paid_amount = total_amount - remaining_amount
+                    is_fully_paid = paid_amount >= total_amount or remaining_amount <= 0
+                    
+                    # 1. Synchronisation Tempo
+                    tempo_result = self.sync_to_tempo(
+                        invoice_number=task_data['invoice_number'],
+                        payment_amount=paid_amount,
+                        payment_date=datetime.now(),
+                        is_fully_paid=is_fully_paid
+                    )
+                    
+                    # Log du résultat Tempo (ne fait pas échouer le traitement principal)
+                    if not tempo_result['success']:
+                        print(f"  ⚠ Synchronisation Tempo échouée: {tempo_result['error']}")
+                    
+                    # 2. Synchronisation Armado
                     armado_result = self.sync_to_armado(
                         invoice_number=task_data['invoice_number'],
                         payment_status=task_data['payment_status'],
@@ -275,7 +340,7 @@ class PennylaneSheetsIntegration:
                     if not armado_result['success']:
                         print(f"  ⚠ Synchronisation Armado échouée: {armado_result['error']}")
                 else:
-                    print(f"  ℹ Facture partiellement payée - pas de synchronisation Armado")
+                    print(f"  ℹ Facture partiellement payée - pas de synchronisation Tempo/Armado")
                 
             else:
                 print(f"  ✗ Erreur lors du traitement de la facture {invoice.get('invoice_number', 'N/A')}")
@@ -347,17 +412,17 @@ class PennylaneSheetsIntegration:
 
 def main():
     """Fonction principale"""
-    parser = argparse.ArgumentParser(description='Intégration Pennylane v2 - Google Sheets - Armado')
+    parser = argparse.ArgumentParser(description='Intégration Pennylane v2 - Google Sheets - Tempo - Armado')
     parser.add_argument('--auto', action='store_true', help='Mode automatique pour GitHub Actions')
     parser.add_argument('--test-mode', action='store_true', help='Mode test (désactive la synchronisation Armado)')
     args = parser.parse_args()
     
-    print("=== Intégration Pennylane v2 - Google Sheets - Armado ===\n")
+    print("=== Intégration Pennylane v2 - Google Sheets - Tempo - Armado ===\n")
     
     # Déterminer le mode test
     test_mode = args.test_mode or os.getenv('TEST_MODE', 'false').lower() == 'true'
     if test_mode:
-        print("🧪 Mode test activé - synchronisation Armado désactivée")
+        print("🧪 Mode test activé - synchronisation Tempo et Armado désactivée")
     
     try:
         integration = PennylaneSheetsIntegration(test_mode=test_mode)

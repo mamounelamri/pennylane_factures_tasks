@@ -1,9 +1,9 @@
-name: Synchronisation Pennylane - Google Sheets - Armado
+name: Synchronisation Pennylane - Google Sheets - Tempo - Armado
 
 on:
-  # Exécution automatique tous les jours à 12h00 heure française (11h00 UTC)
+  # Exécution automatique tous les jours à 3h00 heure française (1h00 UTC)
   schedule:
-    - cron: '0 11 * * *'
+    - cron: '0 1 * * *'
   
   # Exécution manuelle
   workflow_dispatch:
@@ -70,10 +70,10 @@ jobs:
         echo "Date: $(date)"
         
         if [ "$TEST_MODE" = "true" ]; then
-          echo "Mode test activé - synchronisation Armado désactivée"
+          echo "Mode test activé - synchronisation Tempo et Armado désactivée"
           python main.py --auto --test-mode
         else
-          echo "Mode production - synchronisation Armado activée"
+          echo "Mode production - synchronisation Tempo et Armado activée"
           python main.py --auto
         fi
     
